@@ -249,7 +249,7 @@ def prep_data(my_data, options):
         if bt.get('transfer_out'):
             safe_players.append(bt['transfer_out'])
     if ev_per_price_cutoff != 0:
-        cutoff = (merged_data['total_ev'] / merged_data['now_cost']).quantile(ev_per_price_cutoff/100)
+        cutoff = (merged_data['total_ev'] / merged_data['now_cost']).quantile(ev_per_price_cutoff/200)
         merged_data = merged_data[(merged_data['total_ev'] / merged_data['now_cost'] > cutoff) | (merged_data['review_id'].isin(safe_players))].copy()
 
     print(len(merged_data), "total players (after)")
@@ -614,6 +614,31 @@ def solve_multi_period_fpl(data, options):
         ft_penalty = {w: ft_use_penalty * transfer_count[w] for w in gameweeks}
 
     ## Optional constraints
+    if options.get("gk95", True):
+        # greater than 4.5 cost
+        gt_45_gks = [
+            p for p in players if merged_data.loc[p, "Pos"] == "G" and buy_price[p] > 4.5
+        ]
+
+        # exactly 4.4 or 4.5 cost
+        eq_44_45_gks = [
+            p
+            for p in players
+            if merged_data.loc[p, "Pos"] == "G" and 4.4 <= buy_price[p] <= 4.5
+        ]
+
+        model.add_constraints(
+            (
+                (
+                        2 * so.expr_sum(squad[p, w] for p in gt_45_gks)
+                        + so.expr_sum(squad[p, w] for p in eq_44_45_gks)
+                )
+                <= 2
+                for w in gameweeks
+            ),
+            name="gk95",
+        )
+
     if options.get('banned', None):
         print("OC - Banned")
         banned_players = options['banned']
