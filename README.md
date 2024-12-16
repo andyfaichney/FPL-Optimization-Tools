@@ -101,6 +101,7 @@ You will need to follow steps below to install required platform and also optimi
     "banned_next_gw": [],
     "locked": [],
     "locked_next_gw": [],
+    "price_changes": [],
     "delete_tmp": true,
     "secs": 300,
     "use_cmd": false,
@@ -111,11 +112,11 @@ You will need to follow steps below to install required platform and also optimi
     "use_wc": null,
     "use_bb": null,
     "use_fh": null,
-    "chip_limits": { "bb": 0, "wc": 0, "fh": 0, "tc": 0 },
+    "chip_limits": { "bb": 0, "wc": 0, "fh": 0, "tc": 0, "am": 0 },
     "no_chip_gws": [],
-    "allowed_chip_gws": { "bb": [], "wc": [], "fh": [], "tc": [] },
-    "forced_chip_gws": { "bb": [], "wc": [], "fh": [], "tc": [] },
-    "run_chip_combinations": { "bb": [], "wc": [], "fh": [], "tc": [] },
+    "allowed_chip_gws": { "bb": [], "wc": [], "fh": [], "tc": [], "am": [] },
+    "forced_chip_gws": { "bb": [], "wc": [], "fh": [], "tc": [], "am": [] },
+    "run_chip_combinations": { "bb": [], "wc": [], "fh": [], "tc": [], "am": [] },
     "num_transfers": null,
     "hit_limit": null,
     "weekly_hit_limit": 1,
@@ -138,14 +139,14 @@ You will need to follow steps below to install required platform and also optimi
     "data_weights": {
       "review": 50,
       "review-odds": 25,
-      "mikkel": 15,
-      "kiwi": 10
+      "mikkel": 15
     },
     "export_data": "final.csv",
     "team_data": "json",
     "team_id": null,
     "export_images": false,
-    "solve_name": "regular"
+    "solve_name": "regular",
+    "override_next_gw": null
   }
   ```
 
@@ -174,6 +175,7 @@ You will need to follow steps below to install required platform and also optimi
   - `banned_next_gw`: list of player IDs to be banned for the next gameweek. Alternatively, you can supply an `[ID, gameweek]` list as an element of the list to ban a player just for one specific gameweek. E.g. `[100, [200, 32]]` bans player with ID 100 for the next gameweek, and bans player with ID 200 for gameweek 32
   - `locked`: list of player IDs to always have during the horizon (e.g. `233` for Salah)
   - `locked_next_gw`: List of player IDs to force just for the next gameweek. See `banned_next_gw` for extended usage
+  - `price_changes`: Supply a list of `[ID, price_change]` pairs to solve as if a player's price has risen or dropped compared to the live price. E.g. `[[311, 1], [351, -1]]` will solve as if Alexander-Arnold's price is £0.1m higher, and Haaland's price is £0.1m lower than it is in reality.
   - `delete_tmp`: `true` or `false` whether to delete generated temporary files after solve
   - `secs`: time limit for the solve (in seconds)
   - `use_cmd`: whether to use `os.system` or `subprocess` for running solver, default is `false`
@@ -230,11 +232,10 @@ You will need to follow steps below to install required platform and also optimi
   - `iteration_difference`: number of players to be different (only available for `this_gw_lineup` criteria for now)
   - `iteration_target`: list of GWs where plans will be forced to replace in each iteration
   - `report_decay_base`: list of decay bases to be measured and reported at the end of the solve
-  - `datasource` : `review`, `kiwi`, `mikkel` or `mixed` specifies the data to be used.
+  - `datasource` : `review`, `mikkel` or `mixed` specifies the data to be used.
 
     - `review` requires `fplreview.csv` file
     - `review-odds` requires `fplreview-odds.csv` file
-    - `kiwi` requires `kiwi.csv` file
     - `mikkel` requires `TransferAlgorithm.csv`, file
     - `mixed` requires an additional parameter `data_weights`, and any corresponding files mentioned above
 
@@ -246,6 +247,7 @@ You will need to follow steps below to install required platform and also optimi
   - `team_id`: the team_id to optimise for. Requires `team_data` to be set to `ID`
   - `export_images`: option for exporting visualizations of the lineup
   - `solve_name`: name of the solve, used for naming the output files
+  - `override_next_gw`: the start of the planning horizon -if you need to override for a specific period-
 
 - Run the multi-period optimization
 
