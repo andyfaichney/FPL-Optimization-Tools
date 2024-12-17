@@ -496,7 +496,7 @@ def solve_multi_period_fpl(data, options):
     player_team = {p: merged_data.loc[p, 'name'] for p in players}
     squad_count = {w: so.expr_sum(squad[p, w] for p in players) for w in gameweeks}
     squad_fh_count = {w: so.expr_sum(squad_fh[p, w] for p in players) for w in gameweeks}
-    number_of_transfers = {w: so.expr_sum(transfer_out[p,w] for p in players) + so.expr_sum(use_am_tr_out[t,w] for t in teams_extended) for w in gameweeks}
+    number_of_transfers = {w: so.expr_sum(transfer_out[p,w] for p in players) + so.expr_sum(use_am_tr_out[t,w] for t in teams_extended if t != 'dummy') - use_am_tr_in['dummy', w] for w in gameweeks}
     # number_of_transfers[next_gw-1] = 1
     transfer_diff = {w: number_of_transfers[w] - free_transfers[w] - 15 * use_wc[w] for w in gameweeks}
     use_tc_gw = {w: so.expr_sum(use_tc[p,w] for p in players) for w in gameweeks}
@@ -574,7 +574,7 @@ def solve_multi_period_fpl(data, options):
     
     ## Free transfer constraints
     # 2024-2025 variation: min 1 / max 5 / roll over WC & FH
-    raw_gw_ft = {w: free_transfers[w] - transfer_count[w] + 1 - use_wc[w] - use_fh[w] + use_am_tr_out['dummy',w] + use_am_tr_in['dummy',w] for w in gameweeks}
+    raw_gw_ft = {w: free_transfers[w] - transfer_count[w] + 1 - use_wc[w] - use_fh[w] for w in gameweeks}
     model.add_constraints((free_transfers[w+1] <= raw_gw_ft[w] + 16 * ft_below_lb[w] for w in gameweeks if w+1 in gameweeks), name='newft1')
     model.add_constraints((free_transfers[w+1] <= 1 + 4 * (1-ft_below_lb[w]) for w in gameweeks if w+1 in gameweeks), name='newft2')
     model.add_constraints((free_transfers[w+1] >= raw_gw_ft[w] - 2 * ft_above_ub[w] for w in gameweeks if w+1 in gameweeks and w > 1), name='newft3')
@@ -1028,6 +1028,11 @@ def solve_multi_period_fpl(data, options):
                 # mip_improving_solution_file="tmp/{problem_id}_incumbent.sol"
 
             command = f'{highs_exec} --parallel on --options_file {opt_file_name} --random_seed {random_seed} --presolve {presolve} --model_file {mps_file_name} --time_limit {secs} --solution_file {sol_file_name}'
+
+            if os.name != 'nt' and use_cmd is False:
+                print("Non-Windows OS is detected. Setting use_cmd to true")
+                use_cmd = True
+
             if use_cmd:
                 # highs occasionally freezes in Windows, if it happens, try use_cmd value as False
                 print('If you are using Windows, HiGHS occasionally freezes after solves are completed. Use \n\t"use_cmd": false\nin regular settings if it happens.')
@@ -1217,11 +1222,24 @@ def solve_multi_period_fpl(data, options):
                     summary_of_actions += f"Buy {p} - {merged_data['web_name'][p]}\n"
                     if w == next_gw:
                         move_summary['buy'].append(merged_data['web_name'][p])
+
+            for t in teams_shorts:
+                if use_am_tr_in[t,w].get_value() > 0.5:
+                    summary_of_actions += f"(AM) Buy - {am_manager[t]}\n"
+                    if w == next_gw:
+                        move_summary['buy'].append(am_manager[t])
+
             for p in players:
                 if transfer_out[p,w].get_value() > 0.5:
                     summary_of_actions += f"Sell {p} - {merged_data['web_name'][p]}\n"
                     if w == next_gw:
                         move_summary['sell'].append(merged_data['web_name'][p])
+
+            for t in teams_shorts:
+                if use_am_tr_out[t,w].get_value() > 0.5:
+                    summary_of_actions += f"(AM) Sell - {am_manager[t]}\n"
+                    if w == next_gw:
+                        move_summary['sell'].append(am_manager[t])
 
             lineup_players = picks_df[(picks_df['week'] == w) & (picks_df['lineup'] == 1)]
             bench_players = picks_df[(picks_df['week'] == w) & (picks_df['bench'] >= 0)]
